@@ -1,33 +1,58 @@
-def scale_metric_avg(
+def scale_metric(
     value,
-    from_team,
-    to_team,
-    from_league,
-    to_league,
+    from_team_rating,
+    to_team_rating,
+    from_league_rating,
+    to_league_rating,
     from_team_pos_avg=None,
     to_team_pos_avg=None,
     from_league_pos_avg=None,
     to_league_pos_avg=None,
+    use_position_scaling=True,
+    rating_sensitivity=2.0,
+    position_weight=0.4,
 ):
-    team_factor = to_team / from_team if from_team > 0 else 1
-    league_factor = from_league / to_league if to_league > 0 else 1
-    base_scaled = value * team_factor * league_factor
+    """
+    Simple power-based scaling - easier to understand and tune
 
-    # Position group average scaling
-    if (
-        from_team_pos_avg is not None
-        and to_team_pos_avg is not None
-        and from_team_pos_avg > 0
-    ):
-        base_scaled *= to_team_pos_avg / from_team_pos_avg
-    if (
-        from_league_pos_avg is not None
-        and to_league_pos_avg is not None
-        and from_league_pos_avg > 0
-    ):
-        base_scaled *= to_league_pos_avg / from_league_pos_avg
+    rating_sensitivity: Controls amplification (1.0 = linear, 2.0 = squared, 3.0 = cubed)
+    position_weight: How much position context matters (0.5 = square root, 1.0 = full ratio)
+    """
 
-    return round(base_scaled, 2)
+    # Convert ratings to ratios (how much better/worse)
+    team_ratio = to_team_rating / from_team_rating if from_team_rating > 0 else 1
+    league_ratio = from_league_rating / to_league_rating if to_league_rating > 0 else 1
+
+    # Amplify using power function
+    team_effect = team_ratio**rating_sensitivity
+    league_effect = league_ratio**rating_sensitivity
+
+    # Base multiplier from ratings only
+    base_multiplier = team_effect * league_effect
+
+    # Position context (only if enabled and data available)
+    if use_position_scaling:
+        context_effect = 1.0
+
+        if from_team_pos_avg and to_team_pos_avg and from_team_pos_avg > 0:
+            ratio = to_team_pos_avg / from_team_pos_avg
+            context_effect *= ratio**position_weight
+
+        if from_league_pos_avg and to_league_pos_avg and from_league_pos_avg > 0:
+            ratio = to_league_pos_avg / from_league_pos_avg
+            context_effect *= ratio**position_weight
+
+        # Blend base and context
+        final_multiplier = base_multiplier * context_effect
+    else:
+        # No position scaling - use base only
+        final_multiplier = base_multiplier
+
+    # Apply bounds to prevent extreme values
+    final_multiplier = max(0.3, min(final_multiplier, 3.0))
+
+    scaled_value = value * final_multiplier
+    return round(scaled_value, 2)
 
 
 def simulate_player_transfer(
@@ -111,7 +136,7 @@ def simulate_player_transfer(
             from_league_pos_avg = from_league_group.mean()
             to_league_pos_avg = to_league_group.mean()
 
-        scaled = scale_metric_avg(
+        scaled = scale_metric(
             value,
             cur_team_rating,
             pot_team_rating,
@@ -121,6 +146,7 @@ def simulate_player_transfer(
             to_team_pos_avg,
             from_league_pos_avg,
             to_league_pos_avg,
+            use_position_scaling=apply_position_group_scaling,
         )
         scaled_metrics[metric] = round(scaled, 2)
         debug_stats[metric] = {
