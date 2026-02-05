@@ -10,7 +10,7 @@ def scale_metric(
     to_league_pos_avg=None,
     use_position_scaling=True,
     rating_sensitivity=2.0,
-    position_weight=0.4,
+    position_weight=1.0,
 ):
     """
     Simple power-based scaling - easier to understand and tune
