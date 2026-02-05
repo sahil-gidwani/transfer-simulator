@@ -1,10 +1,55 @@
-def scale_metric(value, from_team, to_team, from_league, to_league):
-    if from_team <= 0 or to_league <= 0 or from_league <= 0 or to_team <= 0:
-        return value
-    team_factor = to_team / from_team
-    league_factor = from_league / to_league
-    combined = team_factor * league_factor
-    return round(value * combined, 2)
+import numpy as np
+
+
+def scale_metric_zscore(
+    value,
+    from_team,
+    to_team,
+    from_league,
+    to_league,
+    from_team_pos_avg=None,
+    to_team_pos_avg=None,
+    from_team_pos_std=None,
+    to_team_pos_std=None,
+    from_league_pos_avg=None,
+    to_league_pos_avg=None,
+    from_league_pos_std=None,
+    to_league_pos_std=None,
+):
+    # Basic scaling as before
+    team_factor = to_team / from_team if from_team > 0 else 1
+    league_factor = from_league / to_league if to_league > 0 else 1
+    base_scaled = value * team_factor * league_factor
+
+    # Z-score scaling for team
+    if (
+        from_team_pos_avg is not None
+        and from_team_pos_std is not None
+        and to_team_pos_avg is not None
+        and to_team_pos_std is not None
+        and from_team_pos_std > 0
+    ):
+        z = (value - from_team_pos_avg) / from_team_pos_std
+        team_scaled = to_team_pos_avg + z * to_team_pos_std
+    else:
+        team_scaled = base_scaled
+
+    # Z-score scaling for league
+    if (
+        from_league_pos_avg is not None
+        and from_league_pos_std is not None
+        and to_league_pos_avg is not None
+        and to_league_pos_std is not None
+        and from_league_pos_std > 0
+    ):
+        z = (value - from_league_pos_avg) / from_league_pos_std
+        league_scaled = to_league_pos_avg + z * to_league_pos_std
+    else:
+        league_scaled = base_scaled
+
+    # Blend (average) the team and league z-score scaling
+    final_scaled = np.mean([team_scaled, league_scaled, base_scaled])
+    return round(final_scaled, 2)
 
 
 def simulate_player_transfer(
@@ -15,6 +60,7 @@ def simulate_player_transfer(
     potential_league: str,
     team_ratings_df,
     league_ratings: dict,
+    apply_position_group_scaling: bool = False,
 ):
     player_row = df_2025_26[df_2025_26["Player"] == player_name]
     if player_row.empty:
@@ -23,15 +69,16 @@ def simulate_player_transfer(
 
     current_team = player_row["Parent Team"]
     current_league = player_row["League"]
+    position_group = player_row.get("Position Group", None)
 
     cur_team_rating = (
         team_ratings_df.set_index("contestantName")
-        .get("currentRating", {})
+        .get("seasonAverageRating", {})
         .get(current_team, 50)
     )
     pot_team_rating = (
         team_ratings_df.set_index("contestantName")
-        .get("currentRating", {})
+        .get("seasonAverageRating", {})
         .get(potential_team, 50)
     )
     cur_league_rating = None
@@ -52,12 +99,55 @@ def simulate_player_transfer(
         if value is None:
             scaled_metrics[metric] = None
             continue
-        scaled = scale_metric(
+
+        from_team_pos_avg = from_team_pos_std = to_team_pos_avg = to_team_pos_std = None
+        from_league_pos_avg = from_league_pos_std = to_league_pos_avg = (
+            to_league_pos_std
+        ) = None
+
+        if apply_position_group_scaling and position_group:
+            # Team position group stats
+            from_team_group = df_2025_26[
+                (df_2025_26["Parent Team"] == current_team)
+                & (df_2025_26["Position Group"] == position_group)
+            ][metric]
+            to_team_group = df_2025_26[
+                (df_2025_26["Parent Team"] == potential_team)
+                & (df_2025_26["Position Group"] == position_group)
+            ][metric]
+            from_team_pos_avg = from_team_group.mean()
+            from_team_pos_std = from_team_group.std()
+            to_team_pos_avg = to_team_group.mean()
+            to_team_pos_std = to_team_group.std()
+
+            # League position group stats
+            from_league_group = df_2025_26[
+                (df_2025_26["League"] == current_league)
+                & (df_2025_26["Position Group"] == position_group)
+            ][metric]
+            to_league_group = df_2025_26[
+                (df_2025_26["League"] == potential_league)
+                & (df_2025_26["Position Group"] == position_group)
+            ][metric]
+            from_league_pos_avg = from_league_group.mean()
+            from_league_pos_std = from_league_group.std()
+            to_league_pos_avg = to_league_group.mean()
+            to_league_pos_std = to_league_group.std()
+
+        scaled = scale_metric_zscore(
             value,
             cur_team_rating,
             pot_team_rating,
             cur_league_rating,
             pot_league_rating,
+            from_team_pos_avg,
+            to_team_pos_avg,
+            from_team_pos_std,
+            to_team_pos_std,
+            from_league_pos_avg,
+            to_league_pos_avg,
+            from_league_pos_std,
+            to_league_pos_std,
         )
         scaled_metrics[metric] = round(scaled, 2)
 

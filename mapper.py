@@ -96,3 +96,10 @@ TEAM_NAME_MAPPING = {
     "RB Leipzig": "RB Leipzig",
     "Bayern MÃ¼nchen": "Bayern München",
 }
+
+POSITION_GROUPS = {
+    "FW": ["CF", "LW", "LWF", "RW", "RWF"],
+    "MF": ["AMF", "DMF", "LAMF", "LCMF", "LDMF", "RAMF", "RCMF", "RDMF"],
+    "DF": ["CB", "LB", "LCB", "LWB", "RB", "RCB", "RWB"],
+    "GK": ["GK"],
+}
