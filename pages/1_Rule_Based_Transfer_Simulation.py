@@ -307,3 +307,34 @@ else:
     st.info(
         "Configure the simulation parameters above and click 'Run Transfer Simulation' to see results"
     )
+
+with st.expander("View Simulation Formula"):
+    st.subheader("Scaling Formula (without Position Scaling)")
+    st.latex(
+        r"""
+    \text{Scaled Value} = \text{Value} \times \left( 
+        \left( \frac{\text{To Team Rating}}{\text{From Team Rating}} \right)^{\alpha}
+        \times
+        \left( \frac{\text{From League Rating}}{\text{To League Rating}} \right)^{\alpha}
+    \right)
+    """
+    )
+    st.markdown("where $\\alpha$ is the rating sensitivity parameter.")
+
+    st.subheader("Scaling Formula (with Position Scaling)")
+    st.latex(
+        r"""
+    \text{Scaled Value} = \text{Value} \times \left( 
+        \left( \frac{\text{To Team Rating}}{\text{From Team Rating}} \right)^{\alpha}
+        \times
+        \left( \frac{\text{From League Rating}}{\text{To League Rating}} \right)^{\alpha}
+        \times
+        \left( \frac{\text{To Team Pos Avg}}{\text{From Team Pos Avg}} \right)^{\beta}
+        \times
+        \left( \frac{\text{To League Pos Avg}}{\text{From League Pos Avg}} \right)^{\beta}
+    \right)
+    """
+    )
+    st.markdown(
+        "where $\\alpha$ is the rating sensitivity and $\\beta$ is the position weight parameter."
+    )
