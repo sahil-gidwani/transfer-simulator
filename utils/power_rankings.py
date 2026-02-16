@@ -1,6 +1,6 @@
 import pandas as pd
 import streamlit as st
-from mapper import TEAM_NAME_MAPPING
+from utils.mapper import TEAM_NAME_MAPPING
 
 LEAGUE_ID_TO_NAME = {
     "2kwbbcootiqqgmrzs6o5inle5": "England Premier League 2025-26",
@@ -12,7 +12,7 @@ LEAGUE_ID_TO_NAME = {
 
 
 @st.cache_data
-def load_and_filter(filepath="power-rankings-teams.csv"):
+def load_and_filter(filepath="data/power-rankings-teams.csv"):
     df = pd.read_csv(filepath)
     league_ids = list(LEAGUE_ID_TO_NAME.keys())
     filtered_df = df[df["domesticLeagueId"].isin(league_ids)].copy()

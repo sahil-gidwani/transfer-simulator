@@ -7,91 +7,26 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import r2_score, mean_absolute_error
 
-# Set page config
-st.set_page_config(page_title="Transfer Performance Prediction", layout="wide")
+from utils.transfers_utils import generate_dummy_dataset
 
-st.title("Transfer Performance Prediction Model")
-st.markdown(
+st.set_page_config(page_title="ML Performance Prediction", layout="wide")
+
+st.title("Machine Learning Based Performance Prediction")
+st.caption(
     """
-This application demonstrates how machine learning can predict player performance 
-after transferring between leagues using historical data and gradient boosting regression.
-"""
+    This approach uses gradient boosting regression to predict player performance 
+    after transferring between leagues based on historical transfer data patterns.
+    """
 )
-
-np.random.seed(42)
 
 
 @st.cache_data
-def generate_dummy_dataset():
-    """Generate realistic dummy transfer data"""
-    n_players = 2000
-    positions = ["GK", "DF", "MF", "FW"]
-    position_weights = [0.1, 0.3, 0.35, 0.25]
-    data = []
-
-    for i in range(n_players):
-        player_name = f"Player_{i+1}"
-        position = np.random.choice(positions, p=position_weights)
-        age = int(np.clip(np.random.normal(26, 4), 18, 40))
-
-        # Age factor affects performance
-        if age < 23:
-            age_factor = 0.85 + (age - 18) * 0.03
-        elif age <= 28:
-            age_factor = 1.0
-        else:
-            age_factor = 1.0 - (age - 28) * 0.02
-
-        minutes_A = np.random.randint(500, 3000)
-        minutes_B = np.random.randint(500, 3000)
-
-        # Base goal-scoring rates per 90 by position
-        if position == "GK":
-            goals_p90_A = 0.0
-            goals_p90_B = 0.0
-        elif position == "DF":
-            base_rate = np.clip(np.random.normal(0.1, 0.05), 0, 0.3)
-            goals_p90_A = base_rate * age_factor
-            goals_p90_B = goals_p90_A * np.random.uniform(0.7, 0.9)
-        elif position == "MF":
-            base_rate = np.clip(np.random.normal(0.3, 0.15), 0, 0.8)
-            goals_p90_A = base_rate * age_factor
-            goals_p90_B = goals_p90_A * np.random.uniform(0.65, 0.85)
-        else:  # FW
-            base_rate = np.clip(np.random.normal(0.6, 0.2), 0.1, 1.2)
-            goals_p90_A = base_rate * age_factor
-            goals_p90_B = goals_p90_A * np.random.uniform(0.6, 0.8)
-
-        # Calculate total goals
-        goals_A = int((goals_p90_A * minutes_A / 90))
-        goals_B = int((goals_p90_B * minutes_B / 90))
-
-        if position != "GK":
-            goals_A = max(0, goals_A + np.random.randint(-2, 3))
-            goals_B = max(0, goals_B + np.random.randint(-2, 3))
-
-        goals_p90_A = round((goals_A / minutes_A * 90), 2) if minutes_A > 0 else 0
-        goals_p90_B = round((goals_B / minutes_B * 90), 2) if minutes_B > 0 else 0
-
-        data.append(
-            {
-                "Player": player_name,
-                "Age": age,
-                "Position": position,
-                "Minutes_A": minutes_A,
-                "Minutes_B": minutes_B,
-                "Goals_A": goals_A,
-                "Goals_B": goals_B,
-                "Goals_p90_A": goals_p90_A,
-                "Goals_p90_B": goals_p90_B,
-            }
-        )
-
-    return pd.DataFrame(data)
+def load_dummy_data():
+    return generate_dummy_dataset()
 
 
 # Generate dataset
-df = generate_dummy_dataset()
+df = load_dummy_data()
 df_modeling = df[df["Position"] != "GK"].copy()
 
 st.markdown("---")
@@ -100,9 +35,9 @@ st.markdown("---")
 st.header("1. Dataset Overview")
 st.markdown(
     """
-The dataset contains transfer records for 2,000 players who moved between League A and League B.
-For each player, we track their goal-scoring performance in both leagues, along with age and position.
-"""
+    The dataset contains transfer records for 2,000 players who moved between League A and League B.
+    For each player, we track their goal-scoring performance in both leagues, along with age and position.
+    """
 )
 
 col1, col2, col3, col4 = st.columns(4)
@@ -254,17 +189,17 @@ st.markdown("---")
 st.header("3. Model Training")
 st.markdown(
     """
-We use **Gradient Boosting Regression** to predict player performance in League B. This algorithm
-is well-suited for capturing non-linear relationships such as age curves and position-specific effects.
+    We use **Gradient Boosting Regression** to predict player performance in League B. This algorithm
+    is well-suited for capturing non-linear relationships such as age curves and position-specific effects.
 
-**Input Features:**
-- Goals per 90 minutes in League A
-- Player age
-- Position (Defender, Midfielder, Forward)
+    **Input Features:**
+    - Goals per 90 minutes in League A
+    - Player age
+    - Position (Defender, Midfielder, Forward)
 
-**Target Variable:**
-- Goals per 90 minutes in League B
-"""
+    **Target Variable:**
+    - Goals per 90 minutes in League B
+    """
 )
 
 # Prepare features
@@ -302,18 +237,18 @@ col3.metric("Training Samples", f"{len(X_train)}")
 
 st.markdown(
     f"""
-The model achieves an R² score of **{test_r2:.3f}**, meaning it explains {test_r2*100:.1f}% of the variance 
-in League B performance. The mean absolute error of **{test_mae:.3f}** goals per 90 minutes indicates 
-the average prediction error.
-"""
+    The model achieves an R² score of **{test_r2:.3f}**, meaning it explains {test_r2*100:.1f}% of the variance 
+    in League B performance. The mean absolute error of **{test_mae:.3f}** goals per 90 minutes indicates 
+    the average prediction error.
+    """
 )
 
 st.subheader("Prediction Accuracy Visualization")
 st.markdown(
     """
-This plot shows actual vs predicted goals per 90 minutes for the test set. Points closer to the
-diagonal line indicate more accurate predictions. The model performs consistently across all positions.
-"""
+    This plot shows actual vs predicted goals per 90 minutes for the test set. Points closer to the
+    diagonal line indicate more accurate predictions. The model performs consistently across all positions.
+    """
 )
 
 test_df = pd.DataFrame(
@@ -353,9 +288,9 @@ st.markdown("---")
 st.header("4. Interactive Prediction Tool")
 st.markdown(
     """
-Use this tool to predict how a player might perform in League B based on their
-current League A statistics, age, and position.
-"""
+    Use this tool to predict how a player might perform in League B based on their
+    current League A statistics, age, and position.
+    """
 )
 
 col1, col2, col3, col4 = st.columns(4)
@@ -408,21 +343,3 @@ if st.button("Generate Prediction", type="primary"):
         st.success(f"Expected performance improvement of {change_pct:.1f}%")
     else:
         st.info(f"Expected similar performance (change: {change_pct:+.1f}%)")
-
-st.markdown("---")
-
-st.subheader("Model Limitations and Considerations")
-st.markdown(
-    """
-This model provides a baseline prediction using three key features. In practice, transfer performance
-depends on many additional factors:
-
-- Team quality and tactical system fit
-- League-specific playing styles and physicality
-- Injury history and physical condition
-- Adaptation period and language/cultural factors
-- Competition for playing time
-
-These predictions should be used as one component of a comprehensive player evaluation process.
-"""
-)

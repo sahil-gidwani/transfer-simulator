@@ -1,5 +1,5 @@
 import pandas as pd
-from mapper import POSITION_GROUPS
+from utils.mapper import POSITION_GROUPS
 
 
 def load_data(filepath):
