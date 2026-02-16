@@ -4,7 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_absolute_error
 
 from utils.transfers_utils import generate_dummy_dataset
@@ -14,7 +14,7 @@ st.set_page_config(page_title="ML Performance Prediction", layout="wide")
 st.title("Machine Learning Based Performance Prediction")
 st.caption(
     """
-    This approach uses gradient boosting regression to predict player performance 
+    This approach uses linear regression to predict player performance 
     after transferring between leagues based on historical transfer data patterns.
     """
 )
@@ -189,8 +189,8 @@ st.markdown("---")
 st.header("3. Model Training")
 st.markdown(
     """
-    We use **Gradient Boosting Regression** to predict player performance in League B. This algorithm
-    is well-suited for capturing non-linear relationships such as age curves and position-specific effects.
+    We use **Linear Regression** to predict player performance in League B. This algorithm
+    is highly interpretable and provides direct insight into how each feature affects the prediction.
 
     **Input Features:**
     - Goals per 90 minutes in League A
@@ -216,9 +216,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # Train model
-model = GradientBoostingRegressor(
-    n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42
-)
+model = LinearRegression()
 model.fit(X_train, y_train)
 
 # Predictions
@@ -242,6 +240,21 @@ st.markdown(
     the average prediction error.
     """
 )
+
+st.subheader("Model Coefficients")
+st.markdown(
+    """
+    The coefficients below show the effect of each feature on the predicted goals per 90 minutes in League B.
+    """
+)
+coef_df = pd.DataFrame(
+    {
+        "Feature": ["Goals per 90 (League A)", "Age", "Position (DF=0, MF=1, FW=2)"],
+        "Coefficient": model.coef_,
+    }
+)
+st.dataframe(coef_df, use_container_width=True, hide_index=True)
+st.write("Intercept:", model.intercept_)
 
 st.subheader("Prediction Accuracy Visualization")
 st.markdown(

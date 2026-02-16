@@ -308,6 +308,7 @@ else:
         "Configure the simulation parameters above and click 'Run Transfer Simulation' to see results"
     )
 
+st.divider()
 with st.expander("View Simulation Formula"):
     st.subheader("Scaling Formula (without Position Scaling)")
     st.latex(
