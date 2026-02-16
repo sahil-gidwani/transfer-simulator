@@ -10,7 +10,7 @@ def main():
     df = load_data("filtered_leagues.csv")
     df = add_position_group_column(df)
     with st.expander("Raw Data Sample"):
-        st.write(df.head())
+        st.write(df)
 
     filtered_df = df[df["Season"] == "2025-26"].copy()
     team_ratings_df = get_team_ratings()
